@@ -19,6 +19,10 @@ def requiere_autenticacion(cred: HTTPAuthorizationCredentials | None = Depends(b
 
 
 def requiere_admin(payload: dict = Depends(requiere_autenticacion)) -> dict:
-	if payload.get("rol") != "ADMINISTRADOR":
+	roles = payload.get("roles")
+	if not isinstance(roles, list):
+		rol_unico = payload.get("rol")
+		roles = [rol_unico] if rol_unico else []
+	if "ADMINISTRADOR" not in roles:
 		raise ErrorNegocio(403, "No tiene permisos para realizar esta operación")
 	return payload

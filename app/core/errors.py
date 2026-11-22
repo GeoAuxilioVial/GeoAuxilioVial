@@ -33,6 +33,16 @@ def _codigo_error(tipo: str) -> str:
 		return "CAMPO_NO_EDITABLE"
 	return "FORMATO_INVALIDO"
 
+def _codigo_error(tipo: str) -> str:
+	if tipo == "missing":
+		return "CAMPO_OBLIGATORIO"
+	if tipo in ("greater_than", "greater_than_equal", "less_than", "less_than_equal"):
+		return "FUERA_DE_RANGO"
+	if tipo == "extra_forbidden":
+		return "CAMPO_NO_EDITABLE"
+	return "FORMATO_INVALIDO"
+
+
 def registrar_manejadores(app: FastAPI) -> None:
 	@app.exception_handler(ErrorNegocio)
 	async def _negocio(request: Request, exc: ErrorNegocio):
