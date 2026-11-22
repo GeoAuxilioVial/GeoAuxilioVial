@@ -1,5 +1,6 @@
 """Reglas de negocio de registro e inicio de sesion."""
 import datetime as dt
+import re
 from collections import defaultdict
 
 import bcrypt
@@ -10,7 +11,11 @@ from app.core.config import settings
 from app.core.errors import ErrorNegocio
 from app.domain.usuario_domain import Usuario
 from app.repositories import usuario_repository as repo
-from app.api.schemas.usuario_schemas import LoginEntrada, RegistroEntrada
+from app.api.schemas.usuario_schemas import (
+	LoginEntrada,
+	PerfilActualizacion,
+	RegistroEntrada,
+)
 
 MAX_INTENTOS_FALLIDOS = 5
 _intentos_fallidos: dict[str, list[dt.datetime]] = defaultdict(list)
@@ -87,6 +92,32 @@ def iniciar_sesion(db: Session, datos: LoginEntrada) -> dict:
 		"tipoToken": "Bearer",
 		"expiraEn": expira_en,
 	}
+
+
+def _obtener_usuario_de_token(db: Session, payload: dict) -> Usuario:
+	sujeto = payload.get("sub")
+	if not isinstance(sujeto, str) or not re.fullmatch(r"usr_[0-9]+", sujeto):
+		raise ErrorNegocio(401, "Autenticación requerida o token inválido")
+
+	usuario = repo.obtener_por_id(db, int(sujeto.removeprefix("usr_")))
+	if usuario is None:
+		raise ErrorNegocio(404, "Recurso no encontrado")
+	return usuario
+
+
+def obtener_perfil(db: Session, payload: dict) -> Usuario:
+	return _obtener_usuario_de_token(db, payload)
+
+
+def actualizar_perfil(
+	db: Session,
+	payload: dict,
+	datos: PerfilActualizacion,
+) -> Usuario:
+	usuario = _obtener_usuario_de_token(db, payload)
+	usuario.nombre = datos.nombre
+	usuario.telefono = datos.telefono
+	return repo.guardar(db, usuario)
 
 
 def limpiar_intentos() -> None:
