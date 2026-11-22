@@ -31,7 +31,11 @@ def obtener(db: Session, zona_id: str) -> ZonaCobertura:
 
 def crear(db: Session, datos: ZonaEntrada) -> ZonaCobertura:
 	if repo.obtener_por_nombre(db, datos.nombre):
-		raise ErrorNegocio(409, "Ya existe una zona de cobertura con ese nombre")
+		raise ErrorNegocio(
+			409,
+			"Ya existe una zona de cobertura con ese nombre",
+			{"codigo": "ZONA_DUPLICADA"},
+		)
 	return repo.guardar(db, ZonaCobertura(**datos.model_dump()))
 
 
@@ -39,7 +43,11 @@ def actualizar(db: Session, zona_id: str, datos: ZonaEntrada) -> ZonaCobertura:
 	zona = _obtener_o_404(db, zona_id)
 	otra = repo.obtener_por_nombre(db, datos.nombre)
 	if otra and otra.id != zona.id:
-		raise ErrorNegocio(409, "Ya existe una zona de cobertura con ese nombre")
+		raise ErrorNegocio(
+			409,
+			"Ya existe una zona de cobertura con ese nombre",
+			{"codigo": "ZONA_DUPLICADA"},
+		)
 	for campo, valor in datos.model_dump().items():
 		setattr(zona, campo, valor)
 	return repo.guardar(db, zona)
@@ -48,7 +56,11 @@ def actualizar(db: Session, zona_id: str, datos: ZonaEntrada) -> ZonaCobertura:
 def eliminar(db: Session, zona_id: str) -> str:
 	zona = _obtener_o_404(db, zona_id)
 	if repo.contar_proveedores_asociados(db, zona.id) > 0:
-		raise ErrorNegocio(409, "No se puede eliminar la zona porque tiene proveedores asociados")  # RN-09
+		raise ErrorNegocio(
+			409,
+			"No se puede eliminar la zona porque tiene proveedores asociados",
+			{"codigo": "ZONA_CON_DEPENDENCIAS"},
+		)
 	identificador = zona.zona_id
 	repo.eliminar(db, zona)
 	return identificador
