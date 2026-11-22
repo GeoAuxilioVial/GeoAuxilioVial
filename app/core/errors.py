@@ -25,6 +25,16 @@ class ErrorNegocio(Exception):
 		self.datos = datos
 
 
+def _codigo_error(tipo: str) -> str:
+	if tipo == "missing":
+		return "CAMPO_OBLIGATORIO"
+	if tipo in ("greater_than", "greater_than_equal", "less_than", "less_than_equal"):
+		return "FUERA_DE_RANGO"
+	if tipo == "extra_forbidden":
+		return "CAMPO_NO_EDITABLE"
+	return "FORMATO_INVALIDO"
+
+
 def registrar_manejadores(app: FastAPI) -> None:
 	@app.exception_handler(ErrorNegocio)
 	async def _negocio(request: Request, exc: ErrorNegocio):
@@ -37,7 +47,7 @@ def registrar_manejadores(app: FastAPI) -> None:
 		errores = [
 			{
 				"campo": ".".join(str(p) for p in e["loc"][1:]) or "body",
-				"codigo": "CAMPO_REQUERIDO" if e["type"] == "missing" else "FORMATO_INVALIDO",
+				"codigo": _codigo_error(e["type"]),
 				"mensaje": e["msg"],
 			}
 			for e in exc.errors()
