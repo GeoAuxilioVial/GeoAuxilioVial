@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.api.routers import health, roles, usuario_router
+from app.api.routers import health, proveedor_router, roles, usuario_router
 from app.core.config import settings
 from app.core.errors import registrar_manejadores
 from app.services.rol_service import inicializar_catalogo
@@ -11,4 +11,5 @@ registrar_manejadores(app)
 app.include_router(health.router)
 app.include_router(roles.router)
 app.include_router(usuario_router.router)
+app.include_router(proveedor_router.router)
 inicializar_catalogo()
