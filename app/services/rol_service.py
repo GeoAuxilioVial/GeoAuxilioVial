@@ -11,6 +11,7 @@ ROLES_BASE = [
 	("ADMINISTRADOR", "Administrador", "Gestiona la configuración del sistema"),
 	("CLIENTE", "Cliente", "Solicita servicios de auxilio vial"),
 	("PROVEEDOR", "Proveedor", "Prestador de servicios de auxilio vial"),
+	("REVISOR", "Revisor", "Aprueba o rechaza documentos de proveedores"),
 ]
 
 
