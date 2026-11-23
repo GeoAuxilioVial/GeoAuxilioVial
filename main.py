@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from app.api.routers import health, proveedor_router, roles, usuario_router
 from app.api.routers import documentos_requeridos_router, health, roles, usuario_router, zonas_cobertura_router
 from app.core.config import settings
 from app.core.database import SessionLocal
@@ -14,6 +15,8 @@ app.include_router(documentos_requeridos_router.router)
 app.include_router(health.router)
 app.include_router(roles.router)
 app.include_router(usuario_router.router)
+app.include_router(proveedor_router.router)
+inicializar_catalogo()
 app.include_router(zonas_cobertura_router.router)
 inicializar_catalogo()
 
