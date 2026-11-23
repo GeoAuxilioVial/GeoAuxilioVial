@@ -7,3 +7,11 @@ dev.db
 .vscode/
 
 test_geoauxilio.db
+# Archivos generados por pruebas
+.pytest_cache/
+test_geoauxilio.db
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+venv/
