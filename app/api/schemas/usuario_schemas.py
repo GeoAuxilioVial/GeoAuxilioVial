@@ -46,10 +46,28 @@ class LoginEntrada(BaseModel):
 		return valor.strip().lower()
 
 
+class PerfilActualizacion(BaseModel):
+	model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+	nombre: str = Field(min_length=2, max_length=100)
+	telefono: str = Field(
+		min_length=7,
+		max_length=16,
+		pattern=r"^\+?[1-9]\d{6,14}$",
+	)
+
+
 def usuario_a_dict(usuario: Usuario) -> dict:
 	return {
 		"id": usuario.usuario_id,
 		"nombre": usuario.nombre,
 		"correo": usuario.correo,
 		"roles": usuario.lista_roles(),
+	}
+
+
+def perfil_a_dict(usuario: Usuario) -> dict:
+	return {
+		**usuario_a_dict(usuario),
+		"telefono": usuario.telefono,
 	}
