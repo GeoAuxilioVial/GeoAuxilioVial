@@ -1,5 +1,8 @@
+
 from fastapi import FastAPI
 
+from app.api.routers import health, roles, parametros_auxilio
+from app.api.routers.parametros_auxilio import inicializar_parametros_auxilio
 # Importar modelos antes de inicializar el catálogo para registrar sus tablas
 # en el mismo Base.metadata compartido por todo el proyecto.
 from app.api.routers import health, roles, tipos_vehiculo
@@ -15,6 +18,13 @@ from app.services.rol_service import inicializar_catalogo
 app = FastAPI(title=settings.app_name, version=settings.app_version, debug=settings.app_debug)
 
 registrar_manejadores(app)
+
+app.include_router(health.router)
+app.include_router(roles.router)
+app.include_router(parametros_auxilio.router)
+
+inicializar_catalogo()
+inicializar_parametros_auxilio()
 app.include_router(documentos_requeridos_router.router)
 app.include_router(health.router)
 app.include_router(roles.router)
