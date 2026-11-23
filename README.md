@@ -16,3 +16,15 @@ GeoAuxilio Vial brinda asistencia vial inmediata (ponchaduras, batería, grúa) 
 ## Historias de usuario
 
 Las 28 historias están en [`docs/historias_usuario`](docs/historias_usuario/README.md).
+
+## Migración aditiva de proveedores (HU-17)
+
+Antes de ejecutar una versión que use los campos operativos de proveedor, ejecute desde la raíz del proyecto:
+
+```powershell
+.\venv\Scripts\python.exe migrate_hu17_provider_columns.py
+```
+
+El script usa la conexión configurada en `DATABASE_URL`, comprueba las columnas existentes mediante SQLAlchemy y agrega únicamente las columnas HU-17 que falten en `proveedores`. Es idempotente, no elimina ni recrea datos y no usa Alembic. Las tablas nuevas del microservicio se crean mediante el mecanismo existente de SQLAlchemy.
+
+HU-14 conserva el perfil comercial y la asociación de cobertura en tablas propias del microservicio. `archivos_privados` es un registro interno de referencias y propietario; no existe un endpoint público de carga y ninguna API devuelve su clave de almacenamiento. El componente interno que reciba los archivos debe registrar la referencia privada antes de que el proveedor envíe sus metadatos.
