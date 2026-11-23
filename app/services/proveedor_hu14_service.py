@@ -178,7 +178,7 @@ def cargar_documento(
 			"La referencia del archivo no es válida",
 		)
 	archivo = repo.obtener_archivo(db, datos.archivo_id)
-	if archivo is None or archivo.usuario_id != usuario_id or not archivo.valido:
+	if archivo is None or archivo.proveedor_id != proveedor.id or not archivo.valido:
 		raise _error_validacion(
 			"archivoId",
 			"ARCHIVO_INVALIDO",
