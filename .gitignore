@@ -5,3 +5,9 @@ __pycache__/
 .env
 dev.db
 .vscode/
+
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+venv/
