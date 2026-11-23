@@ -39,7 +39,9 @@ class ArchivoPrivado(Base):
 	__tablename__ = "archivos_privados"
 
 	archivo_id: Mapped[str] = mapped_column(String(64), primary_key=True)
-	usuario_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+	proveedor_id: Mapped[int] = mapped_column(
+		ForeignKey("proveedores.id"), nullable=False, index=True
+	)
 	clave_almacenamiento: Mapped[str] = mapped_column(String(512), nullable=False)
 	valido: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 

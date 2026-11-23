@@ -104,7 +104,7 @@ def _registrar_proveedor(
 
 def _registrar_archivo(
 	test_db,
-	usuario_id: int,
+	proveedor_id: int,
 	archivo_id: str = "file_123",
 	valido: bool = True,
 ):
@@ -112,12 +112,17 @@ def _registrar_archivo(
 		db.add(
 			ArchivoPrivado(
 				archivo_id=archivo_id,
-				usuario_id=usuario_id,
+				proveedor_id=proveedor_id,
 				clave_almacenamiento=f"privado/{archivo_id}",
 				valido=valido,
 			)
 		)
 		db.commit()
+
+
+def _id_proveedor(test_db, usuario_id: int) -> int:
+	with test_db() as db:
+		return db.query(Proveedor).filter_by(usuario_id=usuario_id).one().id
 
 
 def _cargar_documento(
@@ -129,7 +134,7 @@ def _cargar_documento(
 	fecha: str | None = None,
 	reemplaza: str | None = None,
 ):
-	_registrar_archivo(test_db, usuario_id, archivo_id)
+	_registrar_archivo(test_db, _id_proveedor(test_db, usuario_id), archivo_id)
 	datos = {"tipoDocumento": tipo, "archivoId": archivo_id}
 	if fecha is not None:
 		datos["fechaVencimiento"] = fecha
@@ -302,7 +307,7 @@ def test_documento_vencido_no_se_registra(client, test_db):
 def test_fecha_vencimiento_obligatoria_si_documento_la_exige(client, test_db):
 	usuario_id = _crear_usuario(test_db)
 	_registrar_proveedor(client, test_db, usuario_id)
-	_registrar_archivo(test_db, usuario_id)
+	_registrar_archivo(test_db, _id_proveedor(test_db, usuario_id))
 
 	respuesta = client.post(
 		URL_DOCUMENTOS,
@@ -331,7 +336,7 @@ def test_tipo_documento_no_requerido(client, test_db):
 def test_carga_sin_rol_proveedor_no_registra_documento(client, test_db):
 	usuario_id = _crear_usuario(test_db)
 	_registrar_proveedor(client, test_db, usuario_id)
-	_registrar_archivo(test_db, usuario_id)
+	_registrar_archivo(test_db, _id_proveedor(test_db, usuario_id))
 
 	respuesta = client.post(
 		URL_DOCUMENTOS,
@@ -364,8 +369,19 @@ def test_archivo_inexistente_ajeno_o_invalido_se_rechaza(
 	usuario_id = _crear_usuario(test_db)
 	_registrar_proveedor(client, test_db, usuario_id)
 	if registrado:
-		owner_id = usuario_id if propietario else _crear_usuario(test_db)
-		_registrar_archivo(test_db, owner_id, archivo_id, valido=valido)
+		if propietario:
+			owner_provider_id = _id_proveedor(test_db, usuario_id)
+		else:
+			owner_id = _crear_usuario(test_db)
+			owner_provider = _registrar_proveedor(
+				client, test_db, owner_id
+			).json()["datos"]
+			owner_provider_id = int(
+				owner_provider["proveedorId"].removeprefix("prov_")
+			)
+		_registrar_archivo(
+			test_db, owner_provider_id, archivo_id, valido=valido
+		)
 
 	respuesta = client.post(
 		URL_DOCUMENTOS,
