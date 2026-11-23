@@ -29,4 +29,4 @@ El script usa la conexión configurada en `DATABASE_URL`, comprueba las columnas
 
 La tabla `proveedores` se define en `app/domain/proveedor_domain.py` y se crea por el `Base.metadata.create_all()` existente al inicializar el catálogo. HU-14 guarda los datos comerciales, coberturas, documentos y registros privados en tablas propias del microservicio. `archivos_privados` referencia al proveedor mediante FK; no hay endpoint público de carga ni se devuelve la clave de almacenamiento.
 
-`proveedores.usuario_id` tiene una restricción de unicidad y el registro HU-14 comprueba que el usuario exista antes de crear el perfil. La FK directa hacia `usuarios.id` queda pendiente: la tabla existente carece de esa restricción y añadirla en SQLite requeriría reconstruir la tabla. No se reconstruyen ni descartan filas; el refuerzo de integridad referencial debe acordarse como una migración aditiva compatible con los datos existentes.
+Decisión de diseño: usuarios y proveedores son servicios independientes, por eso no hay FK física entre ellos. usuario_id se toma del JWT y se valida en la aplicación antes de registrar. La FK de archivoId a proveedor es interna del servicio.
