@@ -15,11 +15,17 @@ client = TestClient(app)
 PERFIL = "/api/v1/perfil"
 
 
-def _token(usuario_id: int, expiracion: dt.datetime | None = None) -> str:
+def _token(
+	usuario_id: int,
+	expiracion: dt.datetime | None = None,
+	roles: list[str] | None = None,
+) -> str:
+	roles_emitidos = roles or ["CLIENTE"]
 	return jwt.encode(
 		{
 			"sub": f"usr_{usuario_id:03d}",
-			"roles": ["CLIENTE"],
+			"roles": roles_emitidos,
+			"rol": roles_emitidos[0],
 			"exp": expiracion or dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=1),
 		},
 		settings.secret_key,
@@ -104,6 +110,91 @@ def test_consulta_perfil_no_devuelve_datos_de_otra_identidad(perfil_hu09):
 	assert respuesta.status_code == 200
 	assert respuesta.json()["datos"]["correo"] == perfil_hu09["correo_otro"]
 	assert respuesta.json()["datos"]["nombre"] == "Otro HU09"
+
+
+@pytest.mark.parametrize("rol", ["CLIENTE", "PROVEEDOR", "ADMINISTRADOR", "REVISOR"])
+def test_get_perfil_disponible_para_cada_rol(perfil_hu09, rol):
+	with SessionLocal() as db:
+		usuario = db.get(Usuario, perfil_hu09["id"])
+		usuario.roles = rol
+		db.commit()
+
+	token = _token(perfil_hu09["id"], roles=[rol])
+	respuesta = client.get(PERFIL, headers=_autorizacion(token))
+
+	assert respuesta.status_code == 200
+	assert respuesta.json()["datos"]["id"] == f"usr_{perfil_hu09['id']:03d}"
+	assert respuesta.json()["datos"]["correo"] == perfil_hu09["correo"]
+	assert respuesta.json()["datos"]["roles"] == [rol]
+
+
+def test_get_perfil_no_expone_identidad_ni_campos_de_terceros(perfil_hu09):
+	respuesta = client.get(PERFIL, headers=_autorizacion(perfil_hu09["token"]))
+
+	assert respuesta.status_code == 200
+	datos = respuesta.json()["datos"]
+	assert datos["id"] == f"usr_{perfil_hu09['id']:03d}"
+	assert datos["correo"] == perfil_hu09["correo"]
+	assert perfil_hu09["correo_otro"] not in respuesta.text
+	assert "Otro HU09" not in respuesta.text
+	assert "Otro HU09" not in str(datos)
+
+
+def test_solicitud_perfil_rechazada_no_modifica_base_de_datos(perfil_hu09):
+	respuesta = client.put(
+		PERFIL,
+		headers=_autorizacion(perfil_hu09["token"]),
+		json={
+			"nombre": "Cambio rechazado",
+			"telefono": "+573009998877",
+			"correo": "rechazado@example.com",
+		},
+	)
+
+	assert respuesta.status_code == 422
+	assert _codigo_error(respuesta) == "CAMPO_NO_EDITABLE"
+	usuario = _usuario_hu09(perfil_hu09["correo"])
+	assert usuario.nombre == "Usuario HU09"
+	assert usuario.telefono == "+573001112233"
+	assert usuario.correo == perfil_hu09["correo"]
+	assert usuario.roles == "CLIENTE"
+
+
+@pytest.mark.parametrize(
+	"metodo,cuerpo,estado,exito",
+	[
+		("get", None, 200, True),
+		(
+			"put",
+			{"nombre": "Cambio rechazado", "telefono": "+573009998877", "correo": "x@example.com"},
+			422,
+			False,
+	),
+	],
+)
+def test_respuestas_perfil_usan_sobre_json_estandar(
+	perfil_hu09,
+	metodo,
+	cuerpo,
+	estado,
+	exito,
+):
+	if metodo == "get":
+		respuesta = client.get(PERFIL, headers=_autorizacion(perfil_hu09["token"]))
+	else:
+		respuesta = client.put(
+			PERFIL,
+			headers=_autorizacion(perfil_hu09["token"]),
+			json=cuerpo,
+		)
+
+	assert respuesta.status_code == estado
+	cuerpo_respuesta = respuesta.json()
+	assert set(cuerpo_respuesta) == {"exito", "mensaje", "datos", "fechaHora"}
+	assert cuerpo_respuesta["exito"] is exito
+	assert isinstance(cuerpo_respuesta["mensaje"], str)
+	assert cuerpo_respuesta["datos"] is not None
+	assert isinstance(cuerpo_respuesta["fechaHora"], str)
 
 
 def test_actualizacion_valida_persiste_y_devuelve_perfil_completo(perfil_hu09):
