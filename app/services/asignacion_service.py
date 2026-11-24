@@ -85,6 +85,35 @@ def _es_conflicto_de_asignacion(exc: IntegrityError) -> bool:
 	)
 
 
+def _verificar_conflicto_respuesta(
+	db: Session,
+	asignacion_id: int,
+	version_esperada: int,
+) -> None:
+	db.expire_all()
+	expirar_asignaciones_vencidas(db)
+	db.expire_all()
+	asignacion = repo.obtener_asignacion(db, asignacion_id)
+	if asignacion is None:
+		raise ErrorNegocio(404, "Recurso no encontrado")
+	if (
+		asignacion.estado == "EXPIRADA"
+		or _fecha_local(asignacion.expira_en) <= _fecha_ahora()
+	):
+		raise _error_conflicto(
+			"ASIGNACION_EXPIRADA",
+			"La asignación expiró antes de recibir respuesta",
+		)
+	if (
+		asignacion.version != version_esperada
+		or asignacion.estado != "PENDIENTE"
+	):
+		raise _error_conflicto(
+			"ASIGNACION_YA_RESPONDIDA",
+			"La asignación ya fue respondida",
+		)
+
+
 def expirar_asignaciones_vencidas(
 	db: Session,
 	ahora: datetime | None = None,
@@ -268,6 +297,7 @@ def responder_asignacion(
 			"ASIGNACION_YA_RESPONDIDA",
 			"La asignación ya fue respondida",
 		)
+	version_asignacion = asignacion.version
 
 	ahora = _fecha_ahora()
 	if _fecha_local(asignacion.expira_en) <= ahora:
@@ -278,7 +308,15 @@ def responder_asignacion(
 		)
 
 	solicitud = repo.obtener_solicitud(db, asignacion.solicitud_id)
-	if solicitud is None or solicitud.estado != "ASIGNADA":
+	if solicitud is None:
+		raise _error_conflicto(
+			"TRANSICION_INVALIDA",
+			"La solicitud no está asignada",
+		)
+	if solicitud.estado != "ASIGNADA":
+		_verificar_conflicto_respuesta(
+			db, asignacion_pk, version_asignacion
+		)
 		raise _error_conflicto(
 			"TRANSICION_INVALIDA",
 			"La solicitud no está asignada",
@@ -286,18 +324,15 @@ def responder_asignacion(
 	if not repo.responder_asignacion(
 		db,
 		asignacion.id,
-		asignacion.version,
+		version_asignacion,
 		datos.decision,
 		datos.observacion,
 		ahora,
 	):
 		db.rollback()
-		asignacion = repo.obtener_asignacion(db, asignacion_pk)
-		if asignacion is not None and asignacion.estado == "EXPIRADA":
-			raise _error_conflicto(
-				"ASIGNACION_EXPIRADA",
-				"La asignación expiró antes de recibir respuesta",
-			)
+		_verificar_conflicto_respuesta(
+			db, asignacion_pk, version_asignacion
+		)
 		raise _error_conflicto(
 			"ASIGNACION_YA_RESPONDIDA",
 			"La asignación ya fue respondida",
@@ -314,9 +349,12 @@ def responder_asignacion(
 		estado_solicitud,
 	):
 		db.rollback()
+		_verificar_conflicto_respuesta(
+			db, asignacion_pk, version_asignacion
+		)
 		raise _error_conflicto(
-			"TRANSICION_INVALIDA",
-			"La solicitud cambió antes de registrar la respuesta",
+			"ASIGNACION_YA_RESPONDIDA",
+			"La asignación ya fue respondida",
 		)
 	repo.guardar_auditoria(
 		db,
