@@ -10,12 +10,17 @@ from app.api.schemas.proveedor_hu14_schemas import (
 	proveedor_a_dict,
 )
 from app.api.schemas.ubicacion_schemas import UbicacionEntrada, ubicacion_a_dict
+from app.api.schemas.proveedor_hu15_schemas import (
+	DisponibilidadEntrada,
+	disponibilidad_a_dict,
+)
 from app.core.database import get_db
 from app.core.errors import sobre
 from app.core.security import requiere_autenticacion
 from app.services import ubicacion_service as servicio
 from app.services import proveedor_hu14_service as servicio_hu14
 from app.services import proveedor_hu16_service as servicio_hu16
+from app.services import proveedor_hu15_service as servicio_hu15
 
 router = APIRouter(prefix="/api/v1/proveedores", tags=["Proveedores"])
 backoffice_router = APIRouter(
@@ -95,6 +100,22 @@ def consultar_documentos_proveedor(
 		db, payload, proveedor_id
 	)
 	return sobre(True, "Documentos del proveedor consultados", datos)
+
+
+@router.patch("/me/disponibilidad")
+def actualizar_disponibilidad(
+	datos: DisponibilidadEntrada,
+	payload: dict = Depends(requiere_autenticacion),
+	db: Session = Depends(get_db),
+):
+	proveedor, actualizado_en = servicio_hu15.actualizar_disponibilidad(
+		db, payload, datos
+	)
+	return sobre(
+		True,
+		"Disponibilidad actualizada",
+		disponibilidad_a_dict(proveedor, actualizado_en),
+	)
 
 
 @router.put("/me/ubicacion")
