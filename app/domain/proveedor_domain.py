@@ -20,6 +20,9 @@ class Proveedor(Base):
 		default="NO_DISPONIBLE",
 		server_default="NO_DISPONIBLE",
 	)
+	estado_operativo_actualizado_en: Mapped[datetime | None] = mapped_column(
+		DateTime(timezone=True), nullable=True
+	)
 	latitud: Mapped[float | None] = mapped_column(Float, nullable=True)
 	longitud: Mapped[float | None] = mapped_column(Float, nullable=True)
 	precision_metros: Mapped[float | None] = mapped_column(Float, nullable=True)
