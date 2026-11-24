@@ -10,7 +10,6 @@ from app.domain.auxilio_domain import (
 	SolicitudAuxilio,
 )
 from app.domain.proveedor_domain import Proveedor
-from app.domain.proveedor_hu14_domain import DatosProveedor
 
 
 def obtener_proveedor_por_usuario(db: Session, usuario_id: int) -> Proveedor | None:
@@ -38,10 +37,17 @@ def obtener_detalle(db: Session, asignacion_id: int):
 	).first()
 
 
-def listar_vencidas(db: Session, ahora: datetime) -> list[tuple[int, int]]:
+def listar_vencidas(
+	db: Session, ahora: datetime
+) -> list[tuple[int, int, int, int]]:
 	return list(
 		db.execute(
-			select(AsignacionAuxilio.id, AsignacionAuxilio.version).where(
+			select(
+				AsignacionAuxilio.id,
+				AsignacionAuxilio.version,
+				AsignacionAuxilio.solicitud_id,
+				AsignacionAuxilio.proveedor_id,
+			).where(
 				AsignacionAuxilio.estado == "PENDIENTE",
 				AsignacionAuxilio.expira_en <= ahora,
 			)
@@ -126,26 +132,15 @@ def proveedores_excluidos(db: Session, solicitud_id: int) -> set[int]:
 	)
 
 
-def hay_asignacion_pendiente(db: Session, solicitud_id: int) -> bool:
-	return (
-		db.scalar(
-			select(AsignacionAuxilio.id).where(
-				AsignacionAuxilio.solicitud_id == solicitud_id,
-				AsignacionAuxilio.estado == "PENDIENTE",
-			)
+def obtener_asignacion_pendiente(
+	db: Session, solicitud_id: int
+) -> AsignacionAuxilio | None:
+	return db.scalar(
+		select(AsignacionAuxilio).where(
+			AsignacionAuxilio.solicitud_id == solicitud_id,
+			AsignacionAuxilio.estado == "PENDIENTE",
 		)
-		is not None
 	)
-
-
-def listar_candidatos_de_proveedores(db: Session, proveedor_ids: list[int]):
-	if not proveedor_ids:
-		return []
-	return db.execute(
-		select(Proveedor, DatosProveedor).join(
-			DatosProveedor, DatosProveedor.proveedor_id == Proveedor.id
-		).where(Proveedor.id.in_(proveedor_ids))
-	).all()
 
 
 def guardar_auditoria(

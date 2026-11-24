@@ -64,7 +64,7 @@ class AsignacionAuxilio(Base):
 	)
 	decision: Mapped[str | None] = mapped_column(String(20), nullable=True)
 	observacion: Mapped[str | None] = mapped_column(String(500), nullable=True)
-	criada_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+	creada_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 	expira_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 	respondida_en: Mapped[datetime | None] = mapped_column(
 		DateTime(timezone=True), nullable=True
