@@ -1,5 +1,5 @@
 """Endpoint privado de ubicación GPS del proveedor."""
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.schemas.proveedor_hu14_schemas import (
@@ -21,6 +21,7 @@ from app.services import ubicacion_service as servicio
 from app.services import proveedor_hu14_service as servicio_hu14
 from app.services import proveedor_hu16_service as servicio_hu16
 from app.services import proveedor_hu15_service as servicio_hu15
+from app.services import proveedor_cercano_service as servicio_hu18
 
 router = APIRouter(prefix="/api/v1/proveedores", tags=["Proveedores"])
 backoffice_router = APIRouter(
@@ -46,6 +47,21 @@ def registrar_proveedor(
 			resultado["requisitos"],
 		),
 	)
+
+
+@router.get("/cercanos")
+def buscar_proveedores_cercanos(
+	latitud: float = Query(...),
+	longitud: float = Query(...),
+	tipo_servicio: str = Query(..., alias="tipoServicio"),
+	radio_km: float = Query(..., alias="radioKm"),
+	db: Session = Depends(get_db),
+	payload: dict = Depends(requiere_autenticacion),
+):
+	datos = servicio_hu18.buscar_cercanos(
+		db, payload, latitud, longitud, tipo_servicio, radio_km
+	)
+	return sobre(True, "Proveedores cercanos consultados", datos)
 
 
 @router.post("/documentos", status_code=201)
