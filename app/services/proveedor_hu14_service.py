@@ -207,11 +207,9 @@ def cargar_documento(
 	if datos.reemplaza_documento_id is not None:
 		reemplaza_id = _id_publico(datos.reemplaza_documento_id, "doc")
 		documento_anterior = repo.obtener_documento(db, reemplaza_id)
-		if (
-			documento_anterior is None
-			or documento_anterior.proveedor_id != proveedor.id
-			or documento_anterior.tipo_documento != datos.tipo_documento
-		):
+		if documento_anterior is None or documento_anterior.proveedor_id != proveedor.id:
+			raise ErrorNegocio(404, "Recurso no encontrado")
+		if documento_anterior.tipo_documento != datos.tipo_documento:
 			raise _error_validacion(
 				"reemplazaDocumentoId",
 				"VALOR_FUERA_DE_CATALOGO",
@@ -250,7 +248,7 @@ def _proveedor_habilitado(db: Session, proveedor: Proveedor) -> bool:
 				not requisito.exige_vigencia
 				or (
 					documento.fecha_vencimiento is not None
-					and documento.fecha_vencimiento > hoy
+					and documento.fecha_vencimiento >= hoy
 				)
 			)
 			for documento in documentos
@@ -312,6 +310,35 @@ def revisar_documento(
 	proveedor.estado_habilitacion = (
 		"HABILITADO" if _proveedor_habilitado(db, proveedor) else "PENDIENTE"
 	)
+	if datos.decision == "APROBADO" and documento.reemplaza_documento_id is not None:
+		proveedor.estado_operativo = "NO_DISPONIBLE"
+		if proveedor.estado_habilitacion == "HABILITADO":
+			proveedor.motivo_habilitacion = None
+		else:
+			perfil = repo.obtener_datos_proveedor(db, proveedor.id)
+			documentos_vencidos = [
+				doc.tipo_documento
+				for requisito in (
+					repo.obtener_requisitos(db, perfil.tipo_proveedor)
+					if perfil is not None
+					else []
+				)
+				if requisito.exige_vigencia
+				for doc in repo.obtener_documentos(
+					db, proveedor.id, requisito.tipo_documento
+				)
+				if doc.estado == "VENCIDO"
+				and doc.fecha_vencimiento is not None
+				and doc.fecha_vencimiento < datetime.now(ZONA).date()
+			]
+			if documentos_vencidos:
+				proveedor.estado_habilitacion = "SUSPENDIDO"
+				proveedor.motivo_habilitacion = (
+					"Documento obligatorio vencido: "
+					+ ", ".join(sorted(set(documentos_vencidos)))
+				)
+			else:
+				proveedor.motivo_habilitacion = None
 	db.commit()
 	db.refresh(documento)
 	return {
