@@ -17,6 +17,10 @@ class Settings:
     database_url: str = os.getenv("DATABASE_URL", "sqlite:///./dev.db")
     secret_key: str = os.getenv("SECRET_KEY", "")
     access_token_expire_minutes: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+    radio_busqueda_max_km: float = float(os.getenv("RADIO_BUSQUEDA_MAX_KM", "50"))
+    ubicacion_frescura_minutos: int = int(
+        os.getenv("UBICACION_FRESCURA_MINUTOS", "15")
+    )
 
 
 settings = Settings()
