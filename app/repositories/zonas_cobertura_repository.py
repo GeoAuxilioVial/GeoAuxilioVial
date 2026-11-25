@@ -1,6 +1,7 @@
 """Acceso a datos de las zonas de cobertura (HU-03)."""
 from sqlalchemy.orm import Session
 
+from app.domain.proveedor_hu14_domain import ProveedorZonaCobertura
 from app.domain.zonas_cobertura_domain import ZonaCobertura
 
 
@@ -32,6 +33,8 @@ def eliminar(db: Session, zona: ZonaCobertura) -> None:
 
 
 def contar_proveedores_asociados(db: Session, id_: int) -> int:
-	# TODO: cuando exista la tabla de proveedores (HU-14), contar aquí los proveedores
-	# que declararon esta zona de cobertura.
-	return 0
+	return (
+		db.query(ProveedorZonaCobertura)
+		.filter(ProveedorZonaCobertura.zona_id == id_)
+		.count()
+	)
