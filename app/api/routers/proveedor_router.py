@@ -15,6 +15,7 @@ from app.core.errors import sobre
 from app.core.security import requiere_autenticacion
 from app.services import ubicacion_service as servicio
 from app.services import proveedor_hu14_service as servicio_hu14
+from app.services import proveedor_hu16_service as servicio_hu16
 
 router = APIRouter(prefix="/api/v1/proveedores", tags=["Proveedores"])
 backoffice_router = APIRouter(
@@ -52,6 +53,15 @@ def cargar_documento(
 	return sobre(True, "Documento recibido para revisión", documento_a_dict(documento))
 
 
+@router.get("/me/documentos")
+def consultar_mis_documentos(
+	db: Session = Depends(get_db),
+	payload: dict = Depends(requiere_autenticacion),
+):
+	datos = servicio_hu16.consultar_mis_documentos(db, payload)
+	return sobre(True, "Documentos consultados", datos)
+
+
 @backoffice_router.patch("/{proveedor_id}/documentos/{documento_id}")
 def revisar_documento(
 	proveedor_id: str,
@@ -73,6 +83,18 @@ def revisar_documento(
 			"proveedorHabilitado": resultado["proveedor_habilitado"],
 		},
 	)
+
+
+@backoffice_router.get("/{proveedor_id}/documentos")
+def consultar_documentos_proveedor(
+	proveedor_id: str,
+	db: Session = Depends(get_db),
+	payload: dict = Depends(requiere_autenticacion),
+):
+	datos = servicio_hu16.consultar_documentos_proveedor(
+		db, payload, proveedor_id
+	)
+	return sobre(True, "Documentos del proveedor consultados", datos)
 
 
 @router.put("/me/ubicacion")
