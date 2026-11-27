@@ -21,6 +21,15 @@ class Settings:
     ubicacion_frescura_minutos: int = int(
         os.getenv("UBICACION_FRESCURA_MINUTOS", "15")
     )
+    asignacion_plazo_respuesta_segundos: int = int(
+        os.getenv("ASIGNACION_PLAZO_RESPUESTA_SEGUNDOS", "120")
+    )
+    asignacion_expiracion_intervalo_segundos: int = int(
+        os.getenv("ASIGNACION_EXPIRACION_INTERVALO_SEGUNDOS", "15")
+    )
+    asignacion_expiracion_automatica: bool = (
+        os.getenv("ASIGNACION_EXPIRACION_AUTOMATICA", "true").lower() == "true"
+    )
 
 
 settings = Settings()
