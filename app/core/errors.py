@@ -24,16 +24,11 @@ class ErrorNegocio(Exception):
 		self.mensaje = mensaje
 		self.datos = datos
 
-def _codigo_error(tipo: str) -> str:
-	if tipo == "missing":
-		return "CAMPO_OBLIGATORIO"
-	if tipo in ("greater_than", "greater_than_equal", "less_than", "less_than_equal"):
-		return "FUERA_DE_RANGO"
-	if tipo == "extra_forbidden":
-		return "CAMPO_NO_EDITABLE"
-	return "FORMATO_INVALIDO"
-
-def _codigo_error(tipo: str, campo: str, es_perfil: bool) -> str:
+def _codigo_error(
+	tipo: str,
+	campo: str = "",
+	es_perfil: bool = False,
+) -> str:
 	if tipo == "missing":
 		return "CAMPO_OBLIGATORIO"
 	if tipo in ("greater_than", "greater_than_equal", "less_than", "less_than_equal"):

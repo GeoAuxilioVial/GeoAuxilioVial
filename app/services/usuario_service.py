@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.errors import ErrorNegocio
 from app.domain.usuario_domain import Usuario
-from app.repositories import usuario_repository as repo
+from app.repositories import rol_repository, usuario_repository as repo
 from app.api.schemas.usuario_schemas import (
 	LoginEntrada,
 	PerfilActualizacion,
@@ -36,13 +36,16 @@ def registrar(db: Session, datos: RegistroEntrada) -> Usuario:
 			"Ya existe una cuenta con el correo indicado",
 			{"codigo": "CORREO_DUPLICADO"},
 		)
+	rol_cliente = rol_repository.obtener_por_codigo(db, "CLIENTE")
+	if rol_cliente is None or not rol_cliente.activo:
+		raise ErrorNegocio(500, "Error interno controlado")
 	password_hash = bcrypt.hashpw(datos.password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 	usuario = Usuario(
 		nombre=datos.nombre,
 		correo=correo,
 		password_hash=password_hash,
 		telefono=datos.telefono,
-		roles="CLIENTE",
+		roles=rol_cliente.codigo,
 	)
 	return repo.guardar(db, usuario)
 
